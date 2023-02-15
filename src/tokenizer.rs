@@ -1,6 +1,8 @@
 use core::panic;
 use std::{iter::Peekable, str::Chars};
 
+// !TODO : UNIT TESTS
+
 #[derive(Debug)]
 pub enum TokenKind {
     Number(f64),
