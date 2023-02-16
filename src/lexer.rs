@@ -3,7 +3,7 @@ use std::{iter::Peekable, str::Chars};
 
 // !TODO : UNIT TESTS
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum TokenKind {
     Number(f64),
     Identifier(String),
@@ -15,15 +15,17 @@ pub enum TokenKind {
     ParenOpen,
     ParenClose,
     Equals,
+    End,
 }
 
-pub struct Tokenizer<'a> {
+#[derive(Clone)]
+pub struct Lexer<'a> {
     chars: Peekable<Chars<'a>>,
 }
 
-impl<'a> Tokenizer<'a> {
-    pub fn new<S: AsRef<str>>(text: &'a S) -> Tokenizer<'a> {
-        return Tokenizer {
+impl<'a> Lexer<'a> {
+    pub fn new<S: AsRef<str>>(text: &'a S) -> Self {
+        return Self {
             chars: text.as_ref().chars().peekable(),
         };
     }
@@ -55,7 +57,7 @@ impl<'a> Tokenizer<'a> {
     }
 }
 
-impl<'a> Iterator for Tokenizer<'a> {
+impl<'a> Iterator for Lexer<'a> {
     type Item = TokenKind;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -76,6 +78,7 @@ impl<'a> Iterator for Tokenizer<'a> {
             '(' => TokenKind::ParenOpen,
             ')' => TokenKind::ParenClose,
             '=' => TokenKind::Equals,
+            ';' => TokenKind::End,
             c @ ('_' | 'a'..='z' | 'A'..='Z') => self.parse_ident(c),
             c @ '0'..='9' => self.parse_num(c),
             _ => panic!("UNDEFINED TOKEN : {}", current),
