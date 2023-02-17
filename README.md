@@ -1,4 +1,4 @@
-# MathVi
+# Mathovi
 
 The goal of this project is to make it easier to quickly write math equations.
 
