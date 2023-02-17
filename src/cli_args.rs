@@ -6,11 +6,11 @@ use clap::Parser;
 #[command(version = "0.1")]
 #[command(about = "Convert text to math PNG-s", long_about = None)]
 pub struct Cli {
-    /// Name of the input_file
+    /// Name of the input file
     #[arg(short, long)]
     pub input: String,
 
-    /// Number of times to greet
+    /// Name Of the output file
     #[arg(short, long)]
     pub output: String,
 }
