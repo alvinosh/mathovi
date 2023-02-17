@@ -3,12 +3,16 @@ use std::str::FromStr;
 #[derive(Clone, Copy, Debug)]
 pub enum Func {
     Sqrt,
+    Sin,
+    Cos,
 }
 
 impl Func {
     pub fn nr_of_args(&self) -> usize {
         match &self {
             Func::Sqrt => 1,
+            Func::Sin => 1,
+            Func::Cos => 1,
         }
     }
 }
@@ -17,8 +21,10 @@ impl TryFrom<String> for Func {
     type Error = String;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        match value.as_str() {
+        match value.to_lowercase().as_str() {
             "sqrt" => Ok(Func::Sqrt),
+            "sin" => Ok(Func::Sin),
+            "cos" => Ok(Func::Cos),
             _ => Err("Function Not Defined".to_string()),
         }
     }
@@ -94,6 +100,26 @@ pub fn evaulate(expr: Expr) -> String {
                 );
 
                 format!("\\sqrt{{{}}}", evaulate(args[0].clone()))
+            }
+            Func::Sin => {
+                assert_eq!(
+                    args.len(),
+                    1,
+                    "ERROR: Square Root Accepts One Argument, You Supplied {}",
+                    args.len()
+                );
+
+                format!("\\sin{{{}}}", evaulate(args[0].clone()))
+            }
+            Func::Cos => {
+                assert_eq!(
+                    args.len(),
+                    1,
+                    "ERROR: Square Root Accepts One Argument, You Supplied {}",
+                    args.len()
+                );
+
+                format!("\\cos{{{}}}", evaulate(args[0].clone()))
             }
         },
     }

@@ -24,13 +24,10 @@ fn main() {
     let mut parser = parser::Parser::new(lexer.peekable());
     let tex = expression::evaulate(parser.parse().unwrap());
     let img_url = get_tex_url(tex);
-
     let url = format!("http://latex2png.com{}", img_url);
-
     let mut bytes = Vec::new();
     let res = http_req::request::get(url, &mut bytes).unwrap();
     let bytes: &[u8] = &bytes[..];
-
     let mut f = std::fs::File::create(args.output).unwrap();
     f.write_all(bytes).unwrap();
 }
