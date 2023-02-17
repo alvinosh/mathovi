@@ -16,6 +16,7 @@ pub enum TokenKind {
     ParenClose,
     Equals,
     End,
+    Comma
 }
 
 #[derive(Clone)]
@@ -79,6 +80,7 @@ impl<'a> Iterator for Lexer<'a> {
             ')' => TokenKind::ParenClose,
             '=' => TokenKind::Equals,
             ';' => TokenKind::End,
+            ',' => TokenKind::Comma,
             c @ ('_' | 'a'..='z' | 'A'..='Z') => self.parse_ident(c),
             c @ '0'..='9' => self.parse_num(c),
             _ => panic!("UNDEFINED TOKEN : {}", current),
