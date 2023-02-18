@@ -5,7 +5,8 @@
 use std::{
     fmt::format,
     io::{self, BufRead, BufReader, Write},
-    vec,
+    process::Command,
+    string, vec,
 };
 
 use clap::Parser;
@@ -17,49 +18,50 @@ mod expression;
 mod lexer;
 mod parser;
 
+const PREFIX: &'static str = r#"
+\documentclass{article}
+
+\pagestyle{empty}
+
+\usepackage[a6paper, margin={2cm,2cm},twocolumn, layouthoffset=0pt]{geometry}
+
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{amssymb}
+
+\begin{document}
+$ "#;
+
+const SUFFIX: &'static str = r#" $
+\end{document}
+"#;
+
 fn main() {
     let args = Cli::parse();
     let input_string = std::fs::read_to_string(args.input).unwrap();
     let lexer = Lexer::new(&input_string);
     let mut parser = parser::Parser::new(lexer.peekable());
     let tex = expression::evaulate(parser.parse().unwrap());
-    let img_url = get_tex_url(tex);
-    let url = format!("http://latex2png.com{}", img_url);
-    let mut bytes = Vec::new();
-    let res = http_req::request::get(url, &mut bytes).unwrap();
-    let bytes: &[u8] = &bytes[..];
-    let mut f = std::fs::File::create(args.output).unwrap();
-    f.write_all(bytes).unwrap();
-}
 
-fn get_tex_url(tex: String) -> String {
-    let req_body = format!(
-        "
-    {{
-        \"auth\": {{
-            \"user\": \"guest\",
-            \"password\": \"guest\"
-        }},
-        \"latex\": {:?},
-        \"resolution\": 600,
-        \"color\": \"000000\"
-    }}
-    ",
-        tex
-    );
+    let temp_file_name = args.output;
+    let mut temp = std::fs::File::create(format!("{}.tex", temp_file_name)).unwrap();
 
-    let req_body = req_body.as_bytes();
+    temp.write(PREFIX.as_bytes()).unwrap();
+    temp.write(tex.as_bytes()).unwrap();
+    temp.write(SUFFIX.as_bytes()).unwrap();
 
-    let mut writer = Vec::new();
+    let term_command = format!("latex {0}.tex && dvipng -D 1000 {0}.dvi", temp_file_name);
 
-    let res =
-        http_req::request::post("http://latex2png.com/api/convert", req_body, &mut writer).unwrap();
-
-    let v: serde_json::Value =
-        serde_json::from_str(&String::from_utf8(writer.clone()).unwrap()).unwrap();
-    let mut output = v.get("url").unwrap().to_string();
-    output.pop();
-    output.remove(0);
-
-    output
+    let output = if cfg!(target_os = "windows") {
+        Command::new("cmd")
+            .args(["/C", &term_command])
+            .output()
+            .expect("failed to execute process")
+    } else {
+        Command::new("sh")
+            .arg("-c")
+            .arg(&term_command)
+            .output()
+            .expect("failed to execute process")
+    };
 }
