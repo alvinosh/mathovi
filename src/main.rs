@@ -64,4 +64,6 @@ fn main() {
             .output()
             .expect("failed to execute process")
     };
+
+    println!("Generated {}1.png...", temp_file_name);
 }
