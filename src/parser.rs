@@ -5,8 +5,9 @@ use std::{
     vec,
 };
 
+use crate::expression::UnaryOp;
 use crate::{
-    expression::{Expr, Func, Op},
+    expression::{BinaryOp, Expr, Func},
     lexer::TokenKind,
 };
 
@@ -19,44 +20,44 @@ impl<I: Iterator<Item = TokenKind>> Parser<I> {
         Self { tokens: lexer }
     }
 
+    // TODO: Operator Precedence Lol
     pub fn parse(&mut self) -> Result<Expr, String> {
         let lhs = self.parse_primary()?;
 
         if let Some(op) = self.tokens.peek() {
             match op {
                 TokenKind::Plus => {
-                    let rhs = self.parse()?;
                     self.tokens.next();
-                    return Ok(Expr::Op(Box::new(lhs), Box::new(rhs), Op::Add));
+                    let rhs = self.parse()?;
+                    return Ok(Expr::Binary(Box::new(lhs), Box::new(rhs), BinaryOp::Add));
                 }
                 TokenKind::Minus => {
                     self.tokens.next();
                     let rhs = self.parse()?;
-
-                    return Ok(Expr::Op(Box::new(lhs), Box::new(rhs), Op::Sub));
+                    return Ok(Expr::Binary(Box::new(lhs), Box::new(rhs), BinaryOp::Sub));
                 }
                 TokenKind::Multiply => {
                     self.tokens.next();
                     let rhs = self.parse()?;
 
-                    return Ok(Expr::Op(Box::new(lhs), Box::new(rhs), Op::Mult));
+                    return Ok(Expr::Binary(Box::new(lhs), Box::new(rhs), BinaryOp::Mult));
                 }
                 TokenKind::Divider => {
                     self.tokens.next();
                     let rhs = self.parse()?;
 
-                    return Ok(Expr::Op(Box::new(lhs), Box::new(rhs), Op::Frac));
+                    return Ok(Expr::Binary(Box::new(lhs), Box::new(rhs), BinaryOp::Frac));
                 }
                 TokenKind::Power => {
                     self.tokens.next();
                     let rhs = self.parse()?;
 
-                    return Ok(Expr::Op(Box::new(lhs), Box::new(rhs), Op::Pow));
+                    return Ok(Expr::Binary(Box::new(lhs), Box::new(rhs), BinaryOp::Pow));
                 }
                 TokenKind::Equals => {
                     self.tokens.next();
                     let rhs = self.parse()?;
-                    return Ok(Expr::Op(Box::new(lhs), Box::new(rhs), Op::Equals));
+                    return Ok(Expr::Binary(Box::new(lhs), Box::new(rhs), BinaryOp::Equals));
                 }
                 _ => Ok(lhs),
             }
@@ -68,17 +69,37 @@ impl<I: Iterator<Item = TokenKind>> Parser<I> {
     fn parse_primary(&mut self) -> Result<Expr, String> {
         if let Some(primary) = self.tokens.next() {
             match primary {
+                TokenKind::Minus => Ok(Expr::Unary(Box::new(self.parse()?), UnaryOp::Sub)),
                 TokenKind::Number(a) => Ok(Expr::Val(a)),
                 TokenKind::Identifier(a) if a.len() == 1 => Ok(Expr::Sym(a.as_bytes()[0] as char)),
+                TokenKind::ParenOpen => {
+                    let expr = self.parse()?;
+                    let next = self.tokens.next();
+                    if Some(TokenKind::ParenClose) == next {
+                        Ok(expr)
+                    } else {
+                        Err(format!("ERROR: Expected ) but got {:?}", next))
+                    }
+                }
+                TokenKind::ParenClose => Err(format!("ERROR: A Primary Cannot Start With (")),
                 TokenKind::Identifier(a) => {
                     if let Some(TokenKind::ParenOpen) = self.tokens.next() {
                         let args = self.parse_args()?;
-                        let a = a.try_into()?;
-                        Ok(Expr::Func(a, args))
+                        let a: Func = a.try_into()?;
+                        if a.nr_of_args() != args.len() {
+                            Err(format!(
+                                "ERROR: Expected {} Arguments but {} Were Provided",
+                                a.nr_of_args(),
+                                args.len()
+                            ))
+                        } else {
+                            Ok(Expr::Func(a, args))
+                        }
                     } else {
                         Err(format!("ERROR: Expected Arguments After Keyword {}", a))
                     }
                 }
+
                 other => Err(format!("ERROR: Could Not Parse The Token : {:?}", other)),
             }
         } else {
