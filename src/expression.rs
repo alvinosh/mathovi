@@ -64,8 +64,6 @@ pub fn evaulate(expr: Expr) -> String {
         Expr::Val(v) => v.to_string(),
         Expr::Func(func, args) => match func {
             Func::Sqrt => {
-                println!("ARGS : {:?}", args);
-
                 assert_eq!(
                     args.len(),
                     1,

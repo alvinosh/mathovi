@@ -10,7 +10,7 @@ mod lexer;
 mod parser;
 
 fn main() {
-    let string = "a = sqrt(5 * 23, 6) / 3 * 21";
+    let string = "a = sqrt(5 ^ 23) / 3 * 21";
     let lexer = Lexer::new(&string);
 
     let mut parser = Parser::new(lexer.peekable());
