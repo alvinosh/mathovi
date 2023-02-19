@@ -79,7 +79,6 @@ fn main() {
         temp_dir.display(),
     );
 
-    println!("RUNNING: LATEX...");
     let output = if cfg!(target_os = "windows") {
         Command::new("cmd")
             .args(["/C", &term_command])
@@ -92,7 +91,6 @@ fn main() {
             .output()
             .expect("failed to execute process")
     };
-    println!("RUNNING: COMPLETE.");
     println!("GENERATED: {}", args.output);
 
     for file in temp_file_paths {
