@@ -4,5 +4,4 @@ old.rs
 *.aux
 *.dvi
 *.tex
-*.png
 *.log

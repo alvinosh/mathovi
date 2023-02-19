@@ -27,7 +27,7 @@ b = sqrt(5);
 a = (sin(5 * x) - 5) / 3;
 ```
 
-![example](basic.png)
+![example](example/basic.png)
 
 ## Plans
 
