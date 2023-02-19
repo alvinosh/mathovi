@@ -8,9 +8,9 @@ You need LaTeX installed on your machine
 
 ## Usage
 
-```
+```console
 cargo build --release
-mathovi --input input_file.mvi --output output
+mathovi --input <input_file> --output <output_file>
 ```
 
 ## Syntax Example

@@ -16,7 +16,7 @@ pub enum TokenKind {
     ParenClose,
     Equals,
     End,
-    Comma
+    Comma,
 }
 
 #[derive(Clone)]
@@ -88,4 +88,40 @@ impl<'a> Iterator for Lexer<'a> {
 
         return Some(token);
     }
+}
+
+#[test]
+fn it_works() {
+    let str = "a = sqrt(5 * x, hello()) / sin((1/2) * x);";
+    let tokens: Vec<TokenKind> = Lexer::new(&str).collect();
+
+    assert_eq!(
+        tokens,
+        vec![
+            TokenKind::Identifier("a".to_string()),
+            TokenKind::Equals,
+            TokenKind::Identifier("sqrt".to_string()),
+            TokenKind::ParenOpen,
+            TokenKind::Number(5.0),
+            TokenKind::Multiply,
+            TokenKind::Identifier("x".to_string()),
+            TokenKind::Comma,
+            TokenKind::Identifier("hello".to_string()),
+            TokenKind::ParenOpen,
+            TokenKind::ParenClose,
+            TokenKind::ParenClose,
+            TokenKind::Divider,
+            TokenKind::Identifier("sin".to_string()),
+            TokenKind::ParenOpen,
+            TokenKind::ParenOpen,
+            TokenKind::Number(1.0),
+            TokenKind::Divider,
+            TokenKind::Number(2.0),
+            TokenKind::ParenClose,
+            TokenKind::Multiply,
+            TokenKind::Identifier("x".to_string()),
+            TokenKind::ParenClose,
+            TokenKind::End,
+        ]
+    );
 }
