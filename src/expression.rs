@@ -90,11 +90,32 @@ pub fn evaulate(expr: &Expr) -> String {
                     format!("{{{}}} - {{{}}}", a_str, b_str)
                 }
                 BinaryOp::Mult => {
-                    if a.is_val() && b.is_val() {
-                        format!("{{{}}} * {{{}}}", a_str, b_str)
+                    let mut output = String::new();
+                    let a_weak = match **a {
+                        Expr::Binary(_, _, BinaryOp::Add) => true,
+                        Expr::Binary(_, _, BinaryOp::Sub) => true,
+                        _ => false,
+                    };
+                    if a_weak {
+                        output.push_str(&format!("{{({})}}", a_str));
                     } else {
-                        format!("{{{}}}{{{}}}", a_str, b_str)
+                        output.push_str(&format!("{{{}}}", a_str));
                     }
+
+                    if a.is_val() && b.is_val() {
+                        output.push_str("*");
+                    }
+                    let b_weak = match **b {
+                        Expr::Binary(_, _, BinaryOp::Add) => true,
+                        Expr::Binary(_, _, BinaryOp::Sub) => true,
+                        _ => false,
+                    };
+                    if b_weak {
+                        output.push_str(&format!("{{({})}}", b_str));
+                    } else {
+                        output.push_str(&format!("{{{}}}", b_str));
+                    }
+                    output
                 }
                 BinaryOp::Frac => {
                     format!("\\frac{{{}}} {{{}}}", a_str, b_str)
