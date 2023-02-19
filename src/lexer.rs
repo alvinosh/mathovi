@@ -19,6 +19,20 @@ pub enum TokenKind {
     Comma,
 }
 
+impl TokenKind {
+    pub fn takes_precedence(&self, precidence: usize) -> bool {
+        match &self {
+            TokenKind::Plus => precidence == 1,
+            TokenKind::Minus => precidence == 1,
+            TokenKind::Multiply => precidence == 2,
+            TokenKind::Divider => precidence == 2,
+            TokenKind::Power => precidence == 3,
+            TokenKind::Equals => precidence == 0,
+            _ => false,
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct Lexer<'a> {
     chars: Peekable<Chars<'a>>,

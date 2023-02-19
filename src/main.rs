@@ -42,7 +42,7 @@ fn main() {
     let input_string = std::fs::read_to_string(args.input).unwrap();
     let lexer = Lexer::new(&input_string);
     let mut parser = parser::Parser::new(lexer.peekable());
-    let tex = expression::evaulate(parser.parse().unwrap());
+    let tex = expression::evaulate(parser.parse(0).unwrap());
     println!("FILE PARSED.");
 
     let temp_dir = std::env::temp_dir();
