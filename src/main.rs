@@ -46,7 +46,7 @@ fn main() {
     let mut tex = String::new();
 
     for e in expressions {
-        tex.push_str(&format!("$ {} $ \\\\ \n", expression::evaulate(e)))
+        tex.push_str(&format!("$ {} $ \\\\ \n", expression::evaulate(&e)))
     }
 
     println!("FILE PARSED.");

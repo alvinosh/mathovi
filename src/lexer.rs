@@ -16,6 +16,7 @@ pub enum TokenKind {
     ParenClose,
     Equals,
     End,
+    Dots,
     Comma,
 }
 
@@ -45,7 +46,7 @@ impl<'a> Lexer<'a> {
         };
     }
 
-    fn parse_ident(&mut self, start: char) -> TokenKind {
+    fn parse_ident(&mut self, start: char) -> Option<TokenKind> {
         let mut string = String::from(start);
         while let Some(c) = self.chars.peek() {
             if c.is_alphanumeric() {
@@ -55,10 +56,10 @@ impl<'a> Lexer<'a> {
                 break;
             }
         }
-        return TokenKind::Identifier(string);
+        return Some(TokenKind::Identifier(string));
     }
 
-    fn parse_num(&mut self, start: char) -> TokenKind {
+    fn parse_num(&mut self, start: char) -> Option<TokenKind> {
         let mut string = String::from(start);
         while let Some(c) = self.chars.peek() {
             if c.is_numeric() || *c == '.' {
@@ -68,7 +69,17 @@ impl<'a> Lexer<'a> {
                 break;
             }
         }
-        return TokenKind::Number(string.parse().expect("ERROR: Failed To Parse Number "));
+        return Some(TokenKind::Number(
+            string.parse().expect("ERROR: Failed To Parse Number "),
+        ));
+    }
+
+    fn parse_dots(&mut self) -> Option<TokenKind> {
+        let vals = (self.chars.next(), self.chars.next());
+        match vals {
+            (Some('.'), Some('.')) => Some(TokenKind::Dots),
+            _ => None,
+        }
     }
 }
 
@@ -84,23 +95,22 @@ impl<'a> Iterator for Lexer<'a> {
             }
         };
 
-        let token = match current {
-            '+' => TokenKind::Plus,
-            '-' => TokenKind::Minus,
-            '*' => TokenKind::Multiply,
-            '/' => TokenKind::Divider,
-            '^' => TokenKind::Power,
-            '(' => TokenKind::ParenOpen,
-            ')' => TokenKind::ParenClose,
-            '=' => TokenKind::Equals,
-            ';' => TokenKind::End,
-            ',' => TokenKind::Comma,
+        match current {
+            '+' => Some(TokenKind::Plus),
+            '-' => Some(TokenKind::Minus),
+            '*' => Some(TokenKind::Multiply),
+            '/' => Some(TokenKind::Divider),
+            '^' => Some(TokenKind::Power),
+            '(' => Some(TokenKind::ParenOpen),
+            ')' => Some(TokenKind::ParenClose),
+            '=' => Some(TokenKind::Equals),
+            ';' => Some(TokenKind::End),
+            ',' => Some(TokenKind::Comma),
+            '.' => self.parse_dots(),
             c @ ('_' | 'a'..='z' | 'A'..='Z') => self.parse_ident(c),
             c @ '0'..='9' => self.parse_num(c),
             _ => panic!("UNDEFINED TOKEN : {}", current),
-        };
-
-        return Some(token);
+        }
     }
 }
 

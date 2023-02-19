@@ -40,6 +40,19 @@ pub enum BinaryOp {
     Equals,
 }
 
+impl BinaryOp {
+    pub fn precedence(&self) -> usize {
+        match &self {
+            BinaryOp::Add => 1,
+            BinaryOp::Sub => 1,
+            BinaryOp::Mult => 2,
+            BinaryOp::Frac => 2,
+            BinaryOp::Pow => 2,
+            BinaryOp::Equals => 3,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum UnaryOp {
     Sub,
@@ -52,36 +65,50 @@ pub enum Expr {
     Sym(char),
     Val(f64),
     Func(Func, Vec<Expr>),
+    Dots(),
 }
 
-pub fn evaulate(expr: Expr) -> String {
+impl Expr {
+    pub fn is_val(&self) -> bool {
+        match &self {
+            Expr::Val(_) => true,
+            _ => false,
+        }
+    }
+}
+
+pub fn evaulate(expr: &Expr) -> String {
     match expr {
         Expr::Binary(a, b, op) => {
-            let a = evaulate(*a);
-            let b = evaulate(*b);
+            let a_str = evaulate(a);
+            let b_str = evaulate(b);
             match op {
                 BinaryOp::Add => {
-                    format!("{{{}}} + {{{}}}", a, b)
+                    format!("{{{}}} + {{{}}}", a_str, b_str)
                 }
                 BinaryOp::Sub => {
-                    format!("{{{}}} - {{{}}}", a, b)
+                    format!("{{{}}} - {{{}}}", a_str, b_str)
                 }
                 BinaryOp::Mult => {
-                    format!("{{{}}} * {{{}}}", a, b)
+                    if a.is_val() && b.is_val() {
+                        format!("{{{}}} * {{{}}}", a_str, b_str)
+                    } else {
+                        format!("{{{}}}{{{}}}", a_str, b_str)
+                    }
                 }
                 BinaryOp::Frac => {
-                    format!("\\frac{{{}}} {{{}}}", a, b)
+                    format!("\\frac{{{}}} {{{}}}", a_str, b_str)
                 }
                 BinaryOp::Pow => {
-                    format!("{{{}}} ^ {{{}}}", a, b)
+                    format!("{{{}}} ^ {{{}}}", a_str, b_str)
                 }
                 BinaryOp::Equals => {
-                    format!("{{{}}} = {{{}}}", a, b)
+                    format!("{{{}}} = {{{}}}", a_str, b_str)
                 }
             }
         }
         Expr::Unary(a, op) => {
-            let a = evaulate(*a);
+            let a = evaulate(a);
             match op {
                 UnaryOp::Sub => {
                     format!("-{{{}}}", a)
@@ -99,7 +126,7 @@ pub fn evaulate(expr: Expr) -> String {
                     args.len()
                 );
 
-                format!("\\sqrt{{{}}}", evaulate(args[0].clone()))
+                format!("\\sqrt{{{}}}", evaulate(&args[0]))
             }
             Func::Sin => {
                 assert_eq!(
@@ -109,7 +136,7 @@ pub fn evaulate(expr: Expr) -> String {
                     args.len()
                 );
 
-                format!("\\sin({{{}}})", evaulate(args[0].clone()))
+                format!("\\sin({{{}}})", evaulate(&args[0]))
             }
             Func::Cos => {
                 assert_eq!(
@@ -119,8 +146,9 @@ pub fn evaulate(expr: Expr) -> String {
                     args.len()
                 );
 
-                format!("\\cos({{{}}})", evaulate(args[0].clone()))
+                format!("\\cos({{{}}})", evaulate(&args[0]))
             }
         },
+        Expr::Dots() => "{{{\\dots}}}".to_string(),
     }
 }

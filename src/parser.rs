@@ -98,6 +98,7 @@ impl<I: Iterator<Item = TokenKind>> Parser<I> {
     fn parse_primary(&mut self) -> Result<Expr, String> {
         if let Some(primary) = self.tokens.next() {
             match primary {
+                TokenKind::Dots => Ok(Expr::Dots()),
                 TokenKind::Minus => Ok(Expr::Unary(Box::new(self.parse(0)?), UnaryOp::Sub)),
                 TokenKind::Number(a) => Ok(Expr::Val(a)),
                 TokenKind::Identifier(a) if a.len() == 1 => Ok(Expr::Sym(a.as_bytes()[0] as char)),
@@ -128,7 +129,6 @@ impl<I: Iterator<Item = TokenKind>> Parser<I> {
                         Err(format!("ERROR: Expected Arguments After Keyword {}", a))
                     }
                 }
-
                 other => Err(format!("ERROR: Could Not Parse The Token : {:?}", other)),
             }
         } else {
