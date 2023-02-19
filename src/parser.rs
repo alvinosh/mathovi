@@ -22,8 +22,23 @@ impl<I: Iterator<Item = TokenKind>> Parser<I> {
         Self { tokens: lexer }
     }
 
+    pub fn parse_all(&mut self) -> Result<Vec<Expr>, String> {
+        let mut output = vec![];
+        output.push(self.parse(0)?);
+
+        loop {
+            match self.tokens.next() {
+                Some(TokenKind::End) => output.push(self.parse(0)?),
+                Some(_) => return Err("Expected ;".to_string()),
+                None => break,
+            }
+        }
+
+        Ok(output)
+    }
+
     // TODO: Operator Precedence Lol
-    pub fn parse(&mut self, precedence: usize) -> Result<Expr, String> {
+    fn parse(&mut self, precedence: usize) -> Result<Expr, String> {
         if precedence >= MAX_PRECEDENCE {
             return self.parse_primary();
         }

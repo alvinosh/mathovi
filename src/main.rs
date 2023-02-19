@@ -30,9 +30,9 @@ const PREFIX: &'static str = r#"
 \usepackage{amssymb}
 
 \begin{document}
-$ "#;
+"#;
 
-const SUFFIX: &'static str = r#" $
+const SUFFIX: &'static str = r#"
 \end{document}
 "#;
 
@@ -42,7 +42,13 @@ fn main() {
     let input_string = std::fs::read_to_string(args.input).unwrap();
     let lexer = Lexer::new(&input_string);
     let mut parser = parser::Parser::new(lexer.peekable());
-    let tex = expression::evaulate(parser.parse(0).unwrap());
+    let expressions = parser.parse_all().unwrap();
+    let mut tex = String::new();
+
+    for e in expressions {
+        tex.push_str(&format!("$ {} $ \\\\ \n", expression::evaulate(e)))
+    }
+
     println!("FILE PARSED.");
 
     let temp_dir = std::env::temp_dir();
