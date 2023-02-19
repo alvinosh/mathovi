@@ -28,7 +28,12 @@ impl<I: Iterator<Item = TokenKind>> Parser<I> {
 
         loop {
             match self.tokens.next() {
-                Some(TokenKind::End) => output.push(self.parse(0)?),
+                Some(TokenKind::End) => {
+                    if let None = self.tokens.peek() {
+                        break;
+                    }
+                    output.push(self.parse(0)?)
+                }
                 Some(_) => return Err("Expected ;".to_string()),
                 None => break,
             }

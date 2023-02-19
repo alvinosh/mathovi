@@ -109,7 +109,7 @@ pub fn evaulate(expr: Expr) -> String {
                     args.len()
                 );
 
-                format!("\\sin{{{}}}", evaulate(args[0].clone()))
+                format!("\\sin({{{}}})", evaulate(args[0].clone()))
             }
             Func::Cos => {
                 assert_eq!(
@@ -119,7 +119,7 @@ pub fn evaulate(expr: Expr) -> String {
                     args.len()
                 );
 
-                format!("\\cos{{{}}}", evaulate(args[0].clone()))
+                format!("\\cos({{{}}})", evaulate(args[0].clone()))
             }
         },
     }

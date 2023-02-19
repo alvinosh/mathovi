@@ -98,4 +98,11 @@ fn main() {
     for file in temp_file_paths {
         std::fs::remove_file(file).unwrap();
     }
+
+    if cfg!(target_os = "windows") {
+        Command::new("cmd")
+            .args(["/C", &format!("start {}", args.output)])
+            .output()
+            .expect("failed to execute process");
+    };
 }
