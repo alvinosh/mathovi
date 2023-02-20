@@ -195,10 +195,16 @@ impl<I: Iterator<Item = TokenKind>> Parser<I> {
             output.push(self.parse(0)?);
         }
 
-        if let Some(TokenKind::ParenClose) = self.tokens.next() {
+        let next = self.tokens.next();
+        if let Some(TokenKind::ParenClose) = next {
             return Ok(output);
         } else {
-            todo!()
+            return Err(Error::UnexpectedToken {
+                line: 0,
+                col: 0,
+                expected: vec![TokenKind::ParenClose],
+                found: next,
+            });
         }
     }
 }
