@@ -1,5 +1,5 @@
 use core::panic;
-use std::{iter::Peekable, str::Chars};
+use std::{fmt::Display, iter::Peekable, str::Chars};
 
 // !TODO : UNIT TESTS
 
@@ -16,8 +16,28 @@ pub enum TokenKind {
     ParenClose,
     Equals,
     End,
-    Dots,
+    Dot,
     Comma,
+}
+
+impl Display for TokenKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            TokenKind::Number(a) => write!(f, "{}", a),
+            TokenKind::Identifier(a) => write!(f, "{}", a),
+            TokenKind::Plus => write!(f, "+"),
+            TokenKind::Minus => write!(f, "-"),
+            TokenKind::Multiply => write!(f, "*"),
+            TokenKind::Divider => write!(f, "/"),
+            TokenKind::Power => write!(f, "^"),
+            TokenKind::ParenOpen => write!(f, "("),
+            TokenKind::ParenClose => write!(f, ")"),
+            TokenKind::Equals => write!(f, "="),
+            TokenKind::End => write!(f, ";"),
+            TokenKind::Dot => write!(f, "."),
+            TokenKind::Comma => write!(f, ","),
+        }
+    }
 }
 
 impl TokenKind {
@@ -73,14 +93,6 @@ impl<'a> Lexer<'a> {
             string.parse().expect("ERROR: Failed To Parse Number "),
         ));
     }
-
-    fn parse_dots(&mut self) -> Option<TokenKind> {
-        let vals = (self.chars.next(), self.chars.next());
-        match vals {
-            (Some('.'), Some('.')) => Some(TokenKind::Dots),
-            _ => None,
-        }
-    }
 }
 
 impl<'a> Iterator for Lexer<'a> {
@@ -106,7 +118,7 @@ impl<'a> Iterator for Lexer<'a> {
             '=' => Some(TokenKind::Equals),
             ';' => Some(TokenKind::End),
             ',' => Some(TokenKind::Comma),
-            '.' => self.parse_dots(),
+            '.' => Some(TokenKind::Dot),
             c @ ('_' | 'a'..='z' | 'A'..='Z') => self.parse_ident(c),
             c @ '0'..='9' => self.parse_num(c),
             _ => panic!("UNDEFINED TOKEN : {}", current),

@@ -1,10 +1,10 @@
 use std::str::FromStr;
 use std::{
-    error::Error,
     iter::{Peekable, Product},
     vec,
 };
 
+use crate::error::Error;
 use crate::expression::UnaryOp;
 use crate::{
     expression::{BinaryOp, Expr, Func},
@@ -21,8 +21,7 @@ impl<I: Iterator<Item = TokenKind>> Parser<I> {
     pub fn new(lexer: Peekable<I>) -> Self {
         Self { tokens: lexer }
     }
-
-    pub fn parse_all(&mut self) -> Result<Vec<Expr>, String> {
+    pub fn parse_all(&mut self) -> Result<Vec<Expr>, Error> {
         let mut output = vec![];
         output.push(self.parse(0)?);
 
@@ -34,7 +33,14 @@ impl<I: Iterator<Item = TokenKind>> Parser<I> {
                     }
                     output.push(self.parse(0)?)
                 }
-                Some(_) => return Err("Expected ;".to_string()),
+                Some(a) => {
+                    return Err(Error::UnexpectedToken {
+                        line: 0,
+                        col: 0,
+                        expected: vec![TokenKind::End],
+                        found: Some(a),
+                    })
+                }
                 None => break,
             }
         }
@@ -42,8 +48,7 @@ impl<I: Iterator<Item = TokenKind>> Parser<I> {
         Ok(output)
     }
 
-    // TODO: Operator Precedence Lol
-    fn parse(&mut self, precedence: usize) -> Result<Expr, String> {
+    fn parse(&mut self, precedence: usize) -> Result<Expr, Error> {
         if precedence >= MAX_PRECEDENCE {
             return self.parse_primary();
         }
@@ -95,10 +100,27 @@ impl<I: Iterator<Item = TokenKind>> Parser<I> {
         }
     }
 
-    fn parse_primary(&mut self) -> Result<Expr, String> {
+    fn parse_primary(&mut self) -> Result<Expr, Error> {
         if let Some(primary) = self.tokens.next() {
             match primary {
-                TokenKind::Dots => Ok(Expr::Dots()),
+                TokenKind::Dot => {
+                    let next2 = (self.tokens.next(), self.tokens.next());
+                    match next2 {
+                        (Some(TokenKind::Dot), Some(TokenKind::Dot)) => Ok(Expr::Dots()),
+                        (Some(TokenKind::Dot), a) => Err(Error::UnexpectedToken {
+                            line: 0,
+                            col: 0,
+                            expected: vec![TokenKind::Dot],
+                            found: a,
+                        }),
+                        (a, _) => Err(Error::UnexpectedToken {
+                            line: 0,
+                            col: 0,
+                            expected: vec![TokenKind::Dot],
+                            found: a,
+                        }),
+                    }
+                }
                 TokenKind::Minus => Ok(Expr::Unary(Box::new(self.parse(0)?), UnaryOp::Sub)),
                 TokenKind::Number(a) => Ok(Expr::Val(a)),
                 TokenKind::Identifier(a) if a.len() == 1 => Ok(Expr::Sym(a.as_bytes()[0] as char)),
@@ -108,35 +130,63 @@ impl<I: Iterator<Item = TokenKind>> Parser<I> {
                     if Some(TokenKind::ParenClose) == next {
                         Ok(expr)
                     } else {
-                        Err(format!("ERROR: Expected ) but got {:?}", next))
+                        Err(Error::UnexpectedToken {
+                            line: 0,
+                            col: 0,
+                            expected: vec![TokenKind::ParenClose],
+                            found: next,
+                        })
                     }
                 }
-                TokenKind::ParenClose => Err(format!("ERROR: A Primary Cannot Start With (")),
+                TokenKind::ParenClose => Err(Error::UnexpectedToken {
+                    line: 0,
+                    col: 0,
+                    expected: vec![
+                        TokenKind::Dot,
+                        TokenKind::Minus,
+                        TokenKind::Number(0.0),
+                        TokenKind::Identifier("".to_string()),
+                        TokenKind::ParenOpen,
+                    ],
+                    found: Some(TokenKind::ParenClose),
+                }),
                 TokenKind::Identifier(a) => {
-                    if let Some(TokenKind::ParenOpen) = self.tokens.next() {
+                    let next = self.tokens.next();
+                    if let Some(TokenKind::ParenOpen) = next {
                         let args = self.parse_args()?;
                         let a: Func = a.try_into()?;
                         if a.nr_of_args() != args.len() {
-                            Err(format!(
-                                "ERROR: Expected {} Arguments but {} Were Provided",
-                                a.nr_of_args(),
-                                args.len()
-                            ))
+                            Err(Error::WrongArguments {
+                                line: 0,
+                                col: 0,
+                                found: args.len(),
+                                expected: a.nr_of_args(),
+                            })
                         } else {
                             Ok(Expr::Func(a, args))
                         }
                     } else {
-                        Err(format!("ERROR: Expected Arguments After Keyword {}", a))
+                        Err(Error::UnexpectedToken {
+                            line: 0,
+                            col: 0,
+                            expected: vec![TokenKind::ParenOpen],
+                            found: next,
+                        })
                     }
                 }
-                other => Err(format!("ERROR: Could Not Parse The Token : {:?}", other)),
+                other => Err(Error::UnexpectedToken {
+                    line: 0,
+                    col: 0,
+                    expected: vec![],
+                    found: Some(other),
+                }),
             }
         } else {
-            Err(format!("ERROR: Unexpected End Of Line"))
+            Err(Error::UnexpectedEOF)
         }
     }
 
-    fn parse_args(&mut self) -> Result<Vec<Expr>, String> {
+    fn parse_args(&mut self) -> Result<Vec<Expr>, Error> {
         let mut output = vec![];
         output.push(self.parse(0)?);
 

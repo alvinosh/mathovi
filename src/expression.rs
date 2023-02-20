@@ -1,5 +1,7 @@
 use std::str::FromStr;
 
+use crate::error::Error;
+
 #[derive(Clone, Copy, Debug)]
 pub enum Func {
     Sqrt,
@@ -18,14 +20,18 @@ impl Func {
 }
 
 impl TryFrom<String> for Func {
-    type Error = String;
+    type Error = Error;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         match value.to_lowercase().as_str() {
             "sqrt" => Ok(Func::Sqrt),
             "sin" => Ok(Func::Sin),
             "cos" => Ok(Func::Cos),
-            _ => Err("Function Not Defined".to_string()),
+            a => Err(Error::UnexpectedIdent {
+                line: 0,
+                col: 0,
+                ident: a.to_string(),
+            }),
         }
     }
 }

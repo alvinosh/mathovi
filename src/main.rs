@@ -14,35 +14,22 @@ use cli_args::Cli;
 use lexer::Lexer;
 
 mod cli_args;
+mod consts;
+mod error;
 mod expression;
 mod lexer;
 mod parser;
 
-const PREFIX: &'static str = r#"
-\documentclass{article}
-
-\pagestyle{empty}
-
-\usepackage[a6paper, margin={2cm,2cm},twocolumn, layouthoffset=0pt]{geometry}
-
-\usepackage[utf8]{inputenc}
-\usepackage{lmodern}
-\usepackage{amssymb}
-
-\begin{document}
-"#;
-
-const SUFFIX: &'static str = r#"
-\end{document}
-"#;
-
-fn main() {
+fn run() -> Result<(), error::Error> {
     let args = Cli::parse();
-    println!("PARSING FILE...");
-    let input_string = std::fs::read_to_string(args.input).unwrap();
+    // println!("PARSING FILE...");
+
+    let input_string = std::fs::read_to_string(args.input)?;
     let lexer = Lexer::new(&input_string);
+
     let mut parser = parser::Parser::new(lexer.peekable());
-    let expressions = parser.parse_all().unwrap();
+
+    let expressions = parser.parse_all()?;
     let mut tex = String::new();
 
     for e in expressions {
@@ -51,8 +38,6 @@ fn main() {
             expression::evaulate(&e)
         ))
     }
-
-    println!("FILE PARSED.");
 
     let temp_dir = std::env::temp_dir();
     let output_path = std::path::Path::new(&args.output);
@@ -69,10 +54,10 @@ fn main() {
         temp_file_path.with_extension("aux"),
     ];
 
-    let mut temp_tex = std::fs::File::create(&temp_file_paths[0]).unwrap();
-    temp_tex.write(PREFIX.as_bytes()).unwrap();
-    temp_tex.write(tex.as_bytes()).unwrap();
-    temp_tex.write(SUFFIX.as_bytes()).unwrap();
+    let mut temp_tex = std::fs::File::create(&temp_file_paths[0])?;
+    temp_tex.write(consts::PREFIX.as_bytes())?;
+    temp_tex.write(tex.as_bytes())?;
+    temp_tex.write(consts::SUFFIX.as_bytes())?;
 
     let term_command = format!(
         "latex -output-directory={3} {0}  && dvipng -D 1000 -o {2} {1}",
@@ -94,10 +79,8 @@ fn main() {
             .output()
             .expect("failed to execute process")
     };
-    println!("GENERATED: {}", args.output);
-
     for file in temp_file_paths {
-        std::fs::remove_file(file).unwrap();
+        std::fs::remove_file(file)?;
     }
 
     if cfg!(target_os = "windows") {
@@ -106,4 +89,14 @@ fn main() {
             .output()
             .expect("failed to execute process");
     };
+
+    Ok(())
+}
+
+fn main() {
+    if let Err(error) = run() {
+        eprintln!("{}", error);
+    } else {
+        println!("Progam Exited Sucessfully.")
+    }
 }
