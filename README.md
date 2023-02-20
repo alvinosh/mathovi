@@ -24,7 +24,7 @@ a = 5 / 5 + 5;
 
 b = sqrt(5);
 
-a = (sin(5 * x) - 5) / 3;
+(x^n - y^n) = (x-y) * (x^(n-1) + x^(n-2)*y + ... + x*y^(n-2) + y^(x-1));
 ```
 
 ![example](example/example.png)
