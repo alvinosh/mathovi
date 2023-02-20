@@ -11,6 +11,12 @@ mod expression;
 mod lexer;
 mod parser;
 
+// TODO: Add a way to change the color of the background and foreground
+// TODO: Add better logging and a better way to track progress
+// TODO: Allow for differential and integral equations
+// TODO: Make output argument optional
+// TODO: Allow for parsing a equation entered inline
+
 fn run() -> Result<(), error::Error> {
     let args = Cli::parse();
     // println!("PARSING FILE...");
