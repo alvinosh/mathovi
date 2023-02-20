@@ -1,8 +1,4 @@
-use std::str::FromStr;
-use std::{
-    iter::{Peekable, Product},
-    vec,
-};
+use std::{iter::Peekable, vec};
 
 use crate::error::Error;
 use crate::expression::UnaryOp;

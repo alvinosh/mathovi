@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use crate::error::Error;
 
 #[derive(Clone, Copy, Debug)]
@@ -44,19 +42,6 @@ pub enum BinaryOp {
     Frac,
     Pow,
     Equals,
-}
-
-impl BinaryOp {
-    pub fn precedence(&self) -> usize {
-        match &self {
-            BinaryOp::Add => 1,
-            BinaryOp::Sub => 1,
-            BinaryOp::Mult => 2,
-            BinaryOp::Frac => 2,
-            BinaryOp::Pow => 2,
-            BinaryOp::Equals => 3,
-        }
-    }
 }
 
 #[derive(Clone, Copy, Debug)]

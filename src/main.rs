@@ -1,13 +1,4 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
-#![allow(unused_imports)]
-
-use std::{
-    fmt::format,
-    io::{self, BufRead, BufReader, Write},
-    process::Command,
-    string, vec,
-};
+use std::{io::Write, process::Command};
 
 use clap::Parser;
 use cli_args::Cli;
@@ -67,7 +58,7 @@ fn run() -> Result<(), error::Error> {
         temp_dir.display(),
     );
 
-    let output = if cfg!(target_os = "windows") {
+    if cfg!(target_os = "windows") {
         Command::new("cmd")
             .args(["/C", &term_command])
             .output()
