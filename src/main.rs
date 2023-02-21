@@ -19,9 +19,14 @@ mod parser;
 
 fn run() -> Result<(), error::Error> {
     let args = Cli::parse();
-    // println!("PARSING FILE...");
+    let input_string = if let Some(str) = args.string {
+        str
+    } else if let Some(input_file) = args.input_file {
+        std::fs::read_to_string(input_file)?
+    } else {
+        unreachable!();
+    };
 
-    let input_string = std::fs::read_to_string(args.input)?;
     let lexer = Lexer::new(&input_string);
 
     let mut parser = parser::Parser::new(lexer.peekable());
@@ -37,7 +42,7 @@ fn run() -> Result<(), error::Error> {
     }
 
     let temp_dir = std::env::temp_dir();
-    let output_path = std::path::Path::new(&args.output);
+    let output_path = std::path::Path::new(&args.output_file);
     let file_name = output_path
         .file_stem()
         .expect("ERROR: Incorrect Output Path.");
@@ -60,7 +65,7 @@ fn run() -> Result<(), error::Error> {
         "latex -output-directory={3} {0}  && dvipng -D 1000 -o {2} {1}",
         &temp_file_paths[0].display(),
         temp_file_paths[1].display(),
-        args.output,
+        args.output_file.display(),
         temp_dir.display(),
     );
 
@@ -82,7 +87,7 @@ fn run() -> Result<(), error::Error> {
 
     if cfg!(target_os = "windows") {
         Command::new("cmd")
-            .args(["/C", &format!("start {}", args.output)])
+            .args(["/C", &format!("start {}", args.output_file.display())])
             .output()
             .expect("failed to execute process");
     };
