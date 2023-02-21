@@ -88,7 +88,7 @@ fn run() -> Result<(), error::Error> {
         std::fs::remove_file(file)?;
     }
 
-    if cfg!(target_os = "windows") {
+    if cfg!(target_os = "windows") && args.open {
         Command::new("cmd")
             .args(["/C", &format!("start {}", args.output_file.display())])
             .output()

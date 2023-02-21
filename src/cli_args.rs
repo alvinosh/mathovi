@@ -22,4 +22,7 @@ pub struct Cli {
     /// Name Of the output file
     #[arg(short, long, value_parser = clap::value_parser!(std::path::PathBuf))]
     pub output_file: std::path::PathBuf,
+
+    #[arg(long)]
+    pub open: bool,
 }
