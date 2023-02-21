@@ -1,4 +1,7 @@
-use std::{io::Write, process::Command};
+use std::{
+    io::Write,
+    process::{Command, ExitCode},
+};
 
 use clap::Parser;
 use cli_args::Cli;
@@ -95,10 +98,11 @@ fn run() -> Result<(), error::Error> {
     Ok(())
 }
 
-fn main() {
+fn main() -> std::process::ExitCode {
     if let Err(error) = run() {
         eprintln!("{}", error);
+        ExitCode::FAILURE
     } else {
-        println!("Progam Exited Sucessfully.")
+        ExitCode::SUCCESS
     }
 }
