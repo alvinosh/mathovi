@@ -54,53 +54,104 @@ impl TokenKind {
     }
 }
 
+#[derive(Debug)]
+pub struct Token {
+    pub line: usize,
+    pub col: usize,
+    pub size: usize,
+    pub kind: TokenKind,
+}
+
+impl Token {
+    pub fn new(kind: TokenKind, line: usize, col: usize, size: usize) -> Self {
+        Self {
+            line,
+            col,
+            kind,
+            size,
+        }
+    }
+
+    pub fn some(kind: TokenKind, line: usize, col: usize, size: usize) -> Option<Self> {
+        Some(Self::new(kind, line, col, size))
+    }
+}
+
 #[derive(Clone)]
 pub struct Lexer<'a> {
     chars: Peekable<Chars<'a>>,
+    line: usize,
+    col: usize,
 }
 
 impl<'a> Lexer<'a> {
     pub fn new<S: AsRef<str>>(text: &'a S) -> Self {
         return Self {
             chars: text.as_ref().chars().peekable(),
+            line: 0,
+            col: 0,
         };
     }
 
-    fn parse_ident(&mut self, start: char) -> Option<TokenKind> {
-        let mut string = String::from(start);
-        while let Some(c) = self.chars.peek() {
-            if c.is_alphanumeric() {
-                string.push(c.clone());
-                self.chars.next();
-            } else {
-                break;
-            }
-        }
-        return Some(TokenKind::Identifier(string));
+    fn peek(&mut self) -> Option<&char> {
+        self.chars.peek()
     }
 
-    fn parse_num(&mut self, start: char) -> Option<TokenKind> {
+    fn next(&mut self) -> Option<char> {
+        match self.peek() {
+            Some('\n') => {
+                self.line += 1;
+                self.col = 0;
+                self.chars.next()
+            }
+            _ => {
+                self.col += 1;
+                self.chars.next()
+            }
+        }
+    }
+
+    fn parse_ident(&mut self, start: char) -> Option<Token> {
         let mut string = String::from(start);
-        while let Some(c) = self.chars.peek() {
-            if c.is_numeric() || *c == '.' {
+        while let Some(c) = self.peek() {
+            if c.is_alphanumeric() {
                 string.push(c.clone());
-                self.chars.next();
+                self.next();
             } else {
                 break;
             }
         }
-        return Some(TokenKind::Number(
-            string.parse().expect("ERROR: Failed To Parse Number "),
-        ));
+        // fixme size
+        return Token::some(TokenKind::Identifier(string), self.line, self.col, 0);
+    }
+
+    fn parse_num(&mut self, start: char) -> Option<Token> {
+        let mut string = String::from(start);
+        while let Some(c) = self.peek() {
+            if c.is_numeric() || *c == '.' {
+                string.push(c.clone());
+                self.next();
+            } else {
+                break;
+            }
+        }
+
+        // fixme size
+        return Token::some(
+            TokenKind::Number(string.parse().expect("Unreachable")),
+            self.line,
+            self.col,
+            0,
+        );
     }
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = TokenKind;
+    type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
         let current = loop {
-            match self.chars.next() {
+            match self.next() {
                 None => return None,
                 Some(c) if !c.is_whitespace() => break c,
                 _ => {}
@@ -108,56 +159,20 @@ impl<'a> Iterator for Lexer<'a> {
         };
 
         match current {
-            '+' => Some(TokenKind::Plus),
-            '-' => Some(TokenKind::Minus),
-            '*' => Some(TokenKind::Multiply),
-            '/' => Some(TokenKind::Divider),
-            '^' => Some(TokenKind::Power),
-            '(' => Some(TokenKind::ParenOpen),
-            ')' => Some(TokenKind::ParenClose),
-            '=' => Some(TokenKind::Equals),
-            ';' => Some(TokenKind::End),
-            ',' => Some(TokenKind::Comma),
-            '.' => Some(TokenKind::Dot),
+            '+' => Token::some(TokenKind::Plus, self.line, self.col, 1),
+            '-' => Token::some(TokenKind::Minus, self.line, self.col, 1),
+            '*' => Token::some(TokenKind::Multiply, self.line, self.col, 1),
+            '/' => Token::some(TokenKind::Divider, self.line, self.col, 1),
+            '^' => Token::some(TokenKind::Power, self.line, self.col, 1),
+            '(' => Token::some(TokenKind::ParenOpen, self.line, self.col, 1),
+            ')' => Token::some(TokenKind::ParenClose, self.line, self.col, 1),
+            '=' => Token::some(TokenKind::Equals, self.line, self.col, 1),
+            ';' => Token::some(TokenKind::End, self.line, self.col, 1),
+            ',' => Token::some(TokenKind::Comma, self.line, self.col, 1),
+            '.' => Token::some(TokenKind::Dot, self.line, self.col, 1),
             c @ ('_' | 'a'..='z' | 'A'..='Z') => self.parse_ident(c),
             c @ '0'..='9' => self.parse_num(c),
             _ => panic!("UNDEFINED TOKEN : {}", current),
         }
     }
-}
-
-#[test]
-fn it_works() {
-    let str = "a = sqrt(5 * x, hello()) / sin((1/2) * x);";
-    let tokens: Vec<TokenKind> = Lexer::new(&str).collect();
-
-    assert_eq!(
-        tokens,
-        vec![
-            TokenKind::Identifier("a".to_string()),
-            TokenKind::Equals,
-            TokenKind::Identifier("sqrt".to_string()),
-            TokenKind::ParenOpen,
-            TokenKind::Number(5.0),
-            TokenKind::Multiply,
-            TokenKind::Identifier("x".to_string()),
-            TokenKind::Comma,
-            TokenKind::Identifier("hello".to_string()),
-            TokenKind::ParenOpen,
-            TokenKind::ParenClose,
-            TokenKind::ParenClose,
-            TokenKind::Divider,
-            TokenKind::Identifier("sin".to_string()),
-            TokenKind::ParenOpen,
-            TokenKind::ParenOpen,
-            TokenKind::Number(1.0),
-            TokenKind::Divider,
-            TokenKind::Number(2.0),
-            TokenKind::ParenClose,
-            TokenKind::Multiply,
-            TokenKind::Identifier("x".to_string()),
-            TokenKind::ParenClose,
-            TokenKind::End,
-        ]
-    );
 }

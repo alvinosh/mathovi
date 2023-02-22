@@ -1,4 +1,4 @@
-use crate::lexer::TokenKind;
+use crate::lexer::{Token, TokenKind};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -7,16 +7,14 @@ pub enum Error {
 
     #[error(
         "ERROR at {}:{} : Expected \"{}\" , Found \"{}\"",
-        line,
-        col,
+        found.line,
+        found.col,
         print_vec_tokens(expected),
-        print_option_tokens(found)
+        found.kind
     )]
     UnexpectedToken {
-        line: usize,
-        col: usize,
         expected: Vec<TokenKind>,
-        found: Option<TokenKind>,
+        found: Token,
     },
 
     #[error("ERROR at {}:{} : Unexpected Identifier \"{}\"", line, col, ident)]
@@ -50,12 +48,4 @@ fn print_vec_tokens(vec: &Vec<TokenKind>) -> String {
         ouptut.push_str(&format!("{}", token));
     }
     ouptut
-}
-
-fn print_option_tokens(some: &Option<TokenKind>) -> String {
-    if let Some(token) = some {
-        return String::from(&format!("{}", token));
-    } else {
-        return String::from("Nothing");
-    }
 }

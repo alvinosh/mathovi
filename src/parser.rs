@@ -2,18 +2,19 @@ use std::{iter::Peekable, vec};
 
 use crate::error::Error;
 use crate::expression::UnaryOp;
+use crate::lexer::TokenKind;
 use crate::{
     expression::{BinaryOp, Expr, Func},
-    lexer::TokenKind,
+    lexer::Token,
 };
 
 const MAX_PRECEDENCE: usize = 4;
 
-pub struct Parser<I: Iterator<Item = TokenKind>> {
+pub struct Parser<I: Iterator<Item = Token>> {
     tokens: Peekable<I>,
 }
 
-impl<I: Iterator<Item = TokenKind>> Parser<I> {
+impl<I: Iterator<Item = Token>> Parser<I> {
     pub fn new(lexer: Peekable<I>) -> Self {
         Self { tokens: lexer }
     }
@@ -23,18 +24,19 @@ impl<I: Iterator<Item = TokenKind>> Parser<I> {
 
         loop {
             match self.tokens.next() {
-                Some(TokenKind::End) => {
+                Some(Token {
+                    kind: TokenKind::End,
+                    ..
+                }) => {
                     if let None = self.tokens.peek() {
                         break;
                     }
                     output.push(self.parse(0)?)
                 }
-                Some(a) => {
+                Some(token) => {
                     return Err(Error::UnexpectedToken {
-                        line: 0,
-                        col: 0,
                         expected: vec![TokenKind::End],
-                        found: Some(a),
+                        found: token,
                     })
                 }
                 None => break,
@@ -51,8 +53,8 @@ impl<I: Iterator<Item = TokenKind>> Parser<I> {
         let lhs = self.parse(precedence + 1)?;
 
         if let Some(op) = self.tokens.peek() {
-            if op.takes_precedence(precedence) {
-                match op {
+            if op.kind.takes_precedence(precedence) {
+                match op.kind {
                     TokenKind::Plus => {
                         self.tokens.next();
                         let rhs = self.parse(precedence)?;
@@ -98,23 +100,35 @@ impl<I: Iterator<Item = TokenKind>> Parser<I> {
 
     fn parse_primary(&mut self) -> Result<Expr, Error> {
         if let Some(primary) = self.tokens.next() {
-            match primary {
+            match primary.kind {
                 TokenKind::Dot => {
                     let next2 = (self.tokens.next(), self.tokens.next());
                     match next2 {
-                        (Some(TokenKind::Dot), Some(TokenKind::Dot)) => Ok(Expr::Dots()),
-                        (Some(TokenKind::Dot), a) => Err(Error::UnexpectedToken {
-                            line: 0,
-                            col: 0,
+                        (
+                            Some(Token {
+                                kind: TokenKind::Dot,
+                                ..
+                            }),
+                            Some(Token {
+                                kind: TokenKind::Dot,
+                                ..
+                            }),
+                        ) => Ok(Expr::Dots()),
+                        (
+                            Some(Token {
+                                kind: TokenKind::Dot,
+                                ..
+                            }),
+                            Some(a),
+                        ) => Err(Error::UnexpectedToken {
                             expected: vec![TokenKind::Dot],
                             found: a,
                         }),
-                        (a, _) => Err(Error::UnexpectedToken {
-                            line: 0,
-                            col: 0,
+                        (Some(a), _) => Err(Error::UnexpectedToken {
                             expected: vec![TokenKind::Dot],
                             found: a,
                         }),
+                        (None, _) => Err(Error::UnexpectedEOF),
                     }
                 }
                 TokenKind::Minus => Ok(Expr::Unary(Box::new(self.parse(0)?), UnaryOp::Sub)),
@@ -123,20 +137,19 @@ impl<I: Iterator<Item = TokenKind>> Parser<I> {
                 TokenKind::ParenOpen => {
                     let expr = self.parse(0)?;
                     let next = self.tokens.next();
-                    if Some(TokenKind::ParenClose) == next {
-                        Ok(expr)
+                    if let Some(token) = next {
+                        match token.kind {
+                            TokenKind::ParenClose => Ok(expr),
+                            _ => Err(Error::UnexpectedToken {
+                                expected: vec![TokenKind::ParenClose],
+                                found: token,
+                            }),
+                        }
                     } else {
-                        Err(Error::UnexpectedToken {
-                            line: 0,
-                            col: 0,
-                            expected: vec![TokenKind::ParenClose],
-                            found: next,
-                        })
+                        Err(Error::UnexpectedEOF)
                     }
                 }
                 TokenKind::ParenClose => Err(Error::UnexpectedToken {
-                    line: 0,
-                    col: 0,
                     expected: vec![
                         TokenKind::Dot,
                         TokenKind::Minus,
@@ -144,37 +157,38 @@ impl<I: Iterator<Item = TokenKind>> Parser<I> {
                         TokenKind::Identifier("".to_string()),
                         TokenKind::ParenOpen,
                     ],
-                    found: Some(TokenKind::ParenClose),
+                    found: primary,
                 }),
                 TokenKind::Identifier(a) => {
                     let next = self.tokens.next();
-                    if let Some(TokenKind::ParenOpen) = next {
-                        let args = self.parse_args()?;
-                        let a: Func = a.try_into()?;
-                        if a.nr_of_args() != args.len() {
-                            Err(Error::WrongArguments {
-                                line: 0,
-                                col: 0,
-                                found: args.len(),
-                                expected: a.nr_of_args(),
-                            })
-                        } else {
-                            Ok(Expr::Func(a, args))
+                    if let Some(token) = next {
+                        match token.kind {
+                            TokenKind::ParenOpen => {
+                                let args = self.parse_args()?;
+                                let a: Func = a.try_into()?;
+                                if a.nr_of_args() != args.len() {
+                                    Err(Error::WrongArguments {
+                                        line: token.line,
+                                        col: token.col,
+                                        found: args.len(),
+                                        expected: a.nr_of_args(),
+                                    })
+                                } else {
+                                    Ok(Expr::Func(a, args))
+                                }
+                            }
+                            _ => Err(Error::UnexpectedToken {
+                                expected: vec![TokenKind::ParenOpen],
+                                found: token,
+                            }),
                         }
                     } else {
-                        Err(Error::UnexpectedToken {
-                            line: 0,
-                            col: 0,
-                            expected: vec![TokenKind::ParenOpen],
-                            found: next,
-                        })
+                        Err(Error::UnexpectedEOF)
                     }
                 }
-                other => Err(Error::UnexpectedToken {
-                    line: 0,
-                    col: 0,
+                _ => Err(Error::UnexpectedToken {
                     expected: vec![],
-                    found: Some(other),
+                    found: primary,
                 }),
             }
         } else {
@@ -186,21 +200,29 @@ impl<I: Iterator<Item = TokenKind>> Parser<I> {
         let mut output = vec![];
         output.push(self.parse(0)?);
 
-        while let Some(TokenKind::Comma) = self.tokens.peek() {
+        while let Some(Token {
+            kind: TokenKind::Comma,
+            ..
+        }) = self.tokens.peek()
+        {
             self.tokens.next();
             output.push(self.parse(0)?);
         }
 
         let next = self.tokens.next();
-        if let Some(TokenKind::ParenClose) = next {
+        if let Some(Token {
+            kind: TokenKind::ParenClose,
+            ..
+        }) = next
+        {
             return Ok(output);
-        } else {
+        } else if let Some(token) = next {
             return Err(Error::UnexpectedToken {
-                line: 0,
-                col: 0,
                 expected: vec![TokenKind::ParenClose],
-                found: next,
+                found: token,
             });
+        } else {
+            return Err(Error::UnexpectedEOF);
         }
     }
 }
